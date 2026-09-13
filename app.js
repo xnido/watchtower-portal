@@ -14,7 +14,7 @@ let currentData = null;
 let flashMessage = null;
 let portalReady = false;
 let preserveFormState = false;
-const formState = { drafts: {}, questions: {}, rsvpNotes: '' };
+const formState = { drafts: {}, questions: {}, rsvpNotes: '', transitions: {} };
 const $ = id => document.getElementById(id);
 
 function normalizedLanguage(value) {
@@ -38,13 +38,15 @@ function applyStaticTranslations() {
   document.title = t('title') + ' · ' + t('personalTask');
   document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(node => { node.placeholder = t(node.dataset.i18nPlaceholder); });
-  $('language-button').textContent = t('langName');
+  $('language-label').textContent = t('langName');
+  if (window.lucide && !document.querySelector('.language-button svg')) window.lucide.createIcons();
   document.querySelectorAll('.language-option').forEach(node => { node.setAttribute('aria-checked', String(node.dataset.lang === currentLanguage)); });
 }
 function captureFormState() {
   document.querySelectorAll('textarea[data-draft-id]').forEach(node => { formState.drafts[node.dataset.draftId] = node.value; });
   document.querySelectorAll('textarea[data-question-id]').forEach(node => { formState.questions[node.dataset.questionId] = node.value; });
   formState.rsvpNotes = $('rsvp-notes').value;
+  document.querySelectorAll('details[data-transition-id]').forEach(node => { formState.transitions[node.dataset.transitionId] = node.open; });
 }
 function updateLanguageUrl() {
   const url = new URL(window.location.href);
@@ -112,7 +114,7 @@ function makeAssignment(data, a) {
   }
   card.append(main);
   const logistics = [[t('previous'), a.previous], [t('next'), a.next], [queueLabel(a), [a.samePrevious, '#' + a.order + ' ' + data.person.name, a.sameNext].filter(Boolean).join(' → ')]].filter(item => item[1]);
-  if (logistics.length) { const details = el('details'); const summary = el('summary', '', t('transitions')); const detailsContent = el('div', 'details-content'); logistics.forEach(item => detailsContent.append(contentBlock(item[0], item[1]))); details.append(summary, detailsContent); card.append(details); }
+  if (logistics.length) { const details = el('details'); details.dataset.transitionId = a.id; details.open = preserveFormState && Object.prototype.hasOwnProperty.call(formState.transitions, a.id) ? formState.transitions[a.id] : true; const summary = el('summary', '', t('transitions')); const detailsContent = el('div', 'details-content'); logistics.forEach(item => detailsContent.append(contentBlock(item[0], item[1]))); details.append(summary, detailsContent); card.append(details); }
   if (flashMessage && flashMessage.id === a.id) { const flash = el('div', 'flash-success', '✓ ' + t('draftSaved', { version: flashMessage.version })); card.insertBefore(flash, card.querySelector('details')); }
   return card;
 }
