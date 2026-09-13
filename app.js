@@ -74,7 +74,7 @@ function applyStaticTranslations() {
 function captureFormState() {
   document.querySelectorAll('textarea[data-draft-id]').forEach(node => { formState.drafts[node.dataset.draftId] = node.value; });
   document.querySelectorAll('textarea[data-question-id]').forEach(node => { formState.questions[node.dataset.questionId] = node.value; });
-  formState.rsvpNotes = $('rsvp-notes').value;
+  const rsvpNotes = $('rsvp-notes'); if (rsvpNotes) formState.rsvpNotes = rsvpNotes.value;
   document.querySelectorAll('details[data-transition-id]').forEach(node => { formState.transitions[node.dataset.transitionId] = node.open; });
 }
 function updateLanguageUrl() { const url = new URL(window.location.href); url.searchParams.set('lang', currentLanguage); window.history.replaceState({}, '', url); }
@@ -157,7 +157,7 @@ function render(data) {
   if (data.person.parentReminder) $('minor').append(compactNotice(t('parentReminder', { name: data.person.minorChildName })));
   const root = $('assignments'); root.replaceChildren(); data.assignments.forEach(a => root.append(makeAssignment(data, a)));
   const saved = data.person.rehearsalStatus; document.querySelectorAll('input[name="availability"]').forEach(option => { option.checked = option.value === saved; });
-  $('rsvp-notes').dataset.serverValue = data.person.rehearsalNotes || ''; $('rsvp-notes').value = preserveFormState ? formState.rsvpNotes : $('rsvp-notes').dataset.serverValue;
+  const rsvpNotes = $('rsvp-notes'); if (rsvpNotes) { rsvpNotes.dataset.serverValue = data.person.rehearsalNotes || ''; rsvpNotes.value = preserveFormState ? formState.rsvpNotes : rsvpNotes.dataset.serverValue; }
   renderIcons(); setPortalReady(true); flashMessage = null; preserveFormState = false;
 }
 function setupLanguageMenu() {
@@ -169,8 +169,7 @@ function setupLanguageMenu() {
 }
 function setupPreparationSection() {
   const section = $('preparation-section'); const details = $('preparation-details');
-  section.hidden = !EVENT_CONFIG.showPreparationSection;
-  if (!EVENT_CONFIG.showPreparationSection) return;
+  if (!EVENT_CONFIG.showPreparationSection) { section.remove(); return; }
   details.open = localStorage.getItem('preparationSectionCollapsed') !== 'true';
   updatePreparationA11y();
   details.addEventListener('toggle', () => { localStorage.setItem('preparationSectionCollapsed', String(!details.open)); updatePreparationA11y(); });
