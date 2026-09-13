@@ -1,9 +1,5 @@
 /* GitHub Pages frontend. It intentionally contains no participant data or tokens. */
 const API_URL = 'https://script.google.com/macros/s/AKfycbyo0yWPAcZIA_a4trJmkSNNqNzlLqGqrL09MFS9o4fSaN324rV_vt96qHbBSPJQcu58sA/exec';
-const EVENT_CONFIG = {
-  articleTitle: '一个基于爱心的请求',
-  showPreparationSection: true
-};
 const SUPPORTED_LANGUAGES = ['zh', 'ja', 'ko', 'en'];
 const HTML_LANG = { zh: 'zh-CN', ja: 'ja', ko: 'ko', en: 'en' };
 const TYPE_KEYS = { Comment: 'comment', Scripture: 'scripture', Picture: 'picture', Review: 'review' };
@@ -148,10 +144,12 @@ function addDraftForm(main, a) {
   main.append(form);
 }
 function compactNotice(text) { const note = el('div', 'notice minor'); const icon = el('i'); icon.setAttribute('data-lucide', 'info'); icon.setAttribute('aria-hidden', 'true'); note.append(icon, el('div', '', text)); return note; }
-function effectiveArticleTitle(data) { return String((data && data.articleTitle) || EVENT_CONFIG.articleTitle || '').trim(); }
+function effectiveArticleTitle(data) { return String((data && data.articleTitle) || '').trim(); }
+function preparationIsVisible(data) { return !data || data.showPreparationSection !== false; }
 function render(data) {
   document.body.dataset.state = 'ready'; currentData = data; $('name').textContent = data.person.name;
   const article = effectiveArticleTitle(data); $('article-summary').hidden = !article; $('article-title').textContent = article; $('confirm').replaceChildren(); $('minor').replaceChildren();
+  const preparationSection = $('preparation-section'); if (preparationSection) preparationSection.hidden = !preparationIsVisible(data);
   if (!data.person.confirmed) $('confirm').append(el('div', 'notice', t('unconfirmed')));
   if (data.person.minor) $('minor').append(compactNotice(t('minor', { parent1: data.person.parent1, parent2: data.person.parent2 })));
   if (data.person.parentReminder) $('minor').append(compactNotice(t('parentReminder', { name: data.person.minorChildName })));
@@ -168,8 +166,8 @@ function setupLanguageMenu() {
   document.addEventListener('keydown', event => { if (event.key === 'Escape') { menu.hidden = true; button.setAttribute('aria-expanded', 'false'); button.focus(); } });
 }
 function setupPreparationSection() {
-  const section = $('preparation-section'); const details = $('preparation-details');
-  if (!EVENT_CONFIG.showPreparationSection) { section.remove(); return; }
+  const details = $('preparation-details');
+  if (!details) return;
   details.open = localStorage.getItem('preparationSectionCollapsed') !== 'true';
   updatePreparationA11y();
   details.addEventListener('toggle', () => { localStorage.setItem('preparationSectionCollapsed', String(!details.open)); updatePreparationA11y(); });
@@ -181,7 +179,7 @@ $('rsvp').addEventListener('submit', async event => {
   try { await apiPost({ action: 'submitRehearsal', t: token, availability: choice.value, notes: $('rsvp-notes').value }); $('rsvp-notes').dataset.serverValue = $('rsvp-notes').value; if (currentData) { currentData.person.rehearsalStatus = choice.value; currentData.person.rehearsalNotes = $('rsvp-notes').value; lastDataSignature = dataSignature(currentData); } setMessage($('rsvp-message'), t('attendanceSaved')); button.disabled = false; button.textContent = t('saveAttendance'); }
   catch (error) { setMessage($('rsvp-message'), error.message === 'NETWORK' ? t('networkError') : publicError(error.message), true); button.disabled = false; button.textContent = t('saveAttendance'); }
 });
-function dataSignature(data) { return JSON.stringify({ articleTitle: effectiveArticleTitle(data), rehearsal: [data.person.rehearsalStatus || '', data.person.rehearsalNotes || ''], assignments: data.assignments.map(a => [a.id, a.status, a.notes || '', a.approved || '', a.latest ? a.latest.version : 0, a.latest ? a.latest.draft : '', a.latest ? a.latest.question : '']) }); }
+function dataSignature(data) { return JSON.stringify({ articleTitle: effectiveArticleTitle(data), showPreparationSection: preparationIsVisible(data), rehearsal: [data.person.rehearsalStatus || '', data.person.rehearsalNotes || ''], assignments: data.assignments.map(a => [a.id, a.status, a.notes || '', a.approved || '', a.latest ? a.latest.version : 0, a.latest ? a.latest.draft : '', a.latest ? a.latest.question : '']) }); }
 function hasUnsavedEdits() { const textDirty = [...document.querySelectorAll('textarea[data-server-value]')].some(node => node.value !== node.dataset.serverValue); const current = document.querySelector('input[name="availability"]:checked'); const saved = currentData && currentData.person.rehearsalStatus || ''; return textDirty || !!(current && current.value !== saved); }
 function restoreTaskPosition(id, top) { if (top === null || top === undefined) return; requestAnimationFrame(() => { const card = document.querySelector('[data-assignment-id="' + id + '"]'); if (card) window.scrollBy(0, card.getBoundingClientRect().top - top); }); }
 function applyServerData(data, options) { const scrollY = window.scrollY; lastDataSignature = dataSignature(data); pendingUpdateData = null; $('update-notice').hidden = true; render(data); if (options && options.anchorId) restoreTaskPosition(options.anchorId, options.anchorTop); else requestAnimationFrame(() => window.scrollTo(0, scrollY)); }
