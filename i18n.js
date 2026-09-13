@@ -8,3 +8,11 @@ Object.assign(window.TRANSLATIONS.zh, { boundaryReminder: '集中说明自己负
 Object.assign(window.TRANSLATIONS.ja, { boundaryReminder: '自分に割り当てられた要点に集中し，次の項目は次の参加者に任せてください。' });
 Object.assign(window.TRANSLATIONS.ko, { boundaryReminder: '자신에게 배정된 요점에 집중하고, 다음 내용은 다음 참가자에게 맡기세요.' });
 Object.assign(window.TRANSLATIONS.en, { boundaryReminder: 'Focus on your assigned point; leave the next point for the next participant.' });
+Object.assign(window.TRANSLATIONS.zh, { approvedHeading: '已审核通过', updated: '已更新', preparationExpand: '展开评论与现场排练的安排', preparationCollapse: '折叠评论与现场排练的安排' });
+Object.assign(window.TRANSLATIONS.ja, { approvedHeading: '確認済み', updated: '更新済み', preparationExpand: 'コメントと現地リハーサルの予定を開く', preparationCollapse: 'コメントと現地リハーサルの予定を閉じる' });
+Object.assign(window.TRANSLATIONS.ko, { approvedHeading: '검토 승인됨', updated: '업데이트됨', preparationExpand: '해설 및 현장 리허설 안내 펼치기', preparationCollapse: '해설 및 현장 리허설 안내 접기' });
+Object.assign(window.TRANSLATIONS.en, { approvedHeading: 'Approved', updated: 'Updated', preparationExpand: 'Expand comment and rehearsal arrangements', preparationCollapse: 'Collapse comment and rehearsal arrangements' });
+Object.assign(window.TRANSLATIONS.zh, { seconds: '{value} 秒', secondsRange: '{min}–{max} 秒' });
+Object.assign(window.TRANSLATIONS.ja, { seconds: '{value} 秒', secondsRange: '{min}～{max} 秒' });
+Object.assign(window.TRANSLATIONS.ko, { seconds: '{value}초', secondsRange: '{min}–{max}초' });
+Object.assign(window.TRANSLATIONS.en, { seconds: '{value} seconds', secondsRange: '{min}–{max} seconds' });

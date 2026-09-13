@@ -21,12 +21,6 @@ let pendingUpdateData = null;
 let refreshFeedbackTimer = null;
 const $ = id => document.getElementById(id);
 
-function installUiTranslations() {
-  Object.assign(window.TRANSLATIONS.zh, { approvedHeading: '已审核通过', updated: '已更新', preparationExpand: '展开评论与现场排练的安排', preparationCollapse: '折叠评论与现场排练的安排' });
-  Object.assign(window.TRANSLATIONS.ja, { approvedHeading: '確認済み', updated: '更新済み', preparationExpand: 'コメントと現地リハーサルの予定を開く', preparationCollapse: 'コメントと現地リハーサルの予定を閉じる' });
-  Object.assign(window.TRANSLATIONS.ko, { approvedHeading: '검토 승인됨', updated: '업데이트됨', preparationExpand: '해설 및 현장 리허설 안내 펼치기', preparationCollapse: '해설 및 현장 리허설 안내 접기' });
-  Object.assign(window.TRANSLATIONS.en, { approvedHeading: 'Approved', updated: 'Updated', preparationExpand: 'Expand comment and rehearsal arrangements', preparationCollapse: 'Collapse comment and rehearsal arrangements' });
-}
 function normalizedLanguage(value) {
   const source = String(value || '').toLowerCase();
   if (source.startsWith('ja')) return 'ja';
@@ -102,13 +96,29 @@ function approvedBlock(text) {
   box.append(el('div', 'approved-final-heading', '✓ ' + t('approvedHeading')), el('div', 'approved-final-text', text));
   return box;
 }
+function timingValue(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : fallback;
+}
+function assignmentTiming(a) {
+  const target = timingValue(a.target, 30);
+  const min = timingValue(a.min, 25);
+  const max = timingValue(a.max, 35);
+  const group = el('div', 'assignment-timing');
+  const targetItem = el('div', 'assignment-timing-item');
+  const rangeItem = el('div', 'assignment-timing-item');
+  targetItem.append(el('div', 'eyebrow', t('target')), el('div', 'assignment-timing-value', t('seconds', { value: target })));
+  rangeItem.append(el('div', 'eyebrow', t('range')), el('div', 'assignment-timing-value', t('secondsRange', { min, max })));
+  group.append(targetItem, rangeItem);
+  return group;
+}
 function makeAssignment(data, a) {
   const card = el('article', 'assignment-card'); card.dataset.assignmentId = a.id;
   const head = el('div', 'assignment-head'); const topline = el('div', 'assignment-topline'); const titleWrap = el('div');
   titleWrap.append(el('div', 'assignment-paragraph', assignmentTitle(a)), el('div', 'assignment-kind', t(TYPE_KEYS[a.type] || 'comment') + ' · ' + t(a.side === 'L' ? 'left' : 'right')));
   topline.append(titleWrap, el('div', 'assignment-order', t('sequence', { number: a.order }))); head.append(topline);
   if (a.type !== 'Scripture') { const [label, tone] = STATUS_KEYS[a.status] || STATUS_KEYS['尚未提交']; head.append(el('div', 'status-pill ' + tone, t(label))); }
-  card.append(head);
+  card.append(head, assignmentTiming(a));
   const main = el('div', 'assignment-main');
   [contentBlock(t('question'), a.question), contentBlock(t('point'), a.point || t('scripturePoint'), 'key-point', true)].forEach(block => { if (block) main.append(block); });
   if (a.type !== 'Scripture') {
@@ -201,7 +211,6 @@ async function loadPortal() {
   catch (error) { if (error.message === 'INVALID_LINK') showError(t('invalidTitle'), t('invalidCopy')); else showError(t('loadFailed'), error.message === 'NETWORK' ? t('networkError') : publicError(error.message)); }
 }
 
-installUiTranslations();
 currentLanguage = initialLanguage();
 setupPreparationSection();
 applyStaticTranslations();
