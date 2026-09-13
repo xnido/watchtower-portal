@@ -78,17 +78,13 @@ function setLanguage(language, options) {
   const next = SUPPORTED_LANGUAGES.includes(language) ? language : 'zh';
   if (currentData) captureFormState();
   currentLanguage = next;
-  if (options && options.persist) localStorage.setItem('wt-discussion-language', next);
   if (options && options.updateUrl) updateLanguageUrl();
   applyStaticTranslations();
   if (currentData) { preserveFormState = true; render(currentData); }
 }
 function initialLanguage() {
   const urlLanguage = new URLSearchParams(window.location.search).get('lang');
-  if (SUPPORTED_LANGUAGES.includes(urlLanguage)) return urlLanguage;
-  const saved = localStorage.getItem('wt-discussion-language');
-  if (SUPPORTED_LANGUAGES.includes(saved)) return saved;
-  return normalizedLanguage(navigator.language);
+  return SUPPORTED_LANGUAGES.includes(urlLanguage) ? urlLanguage : 'zh';
 }
 async function apiGet() { const url = new URL(API_URL); url.searchParams.set('api', 'getMyData'); url.searchParams.set('t', token); return fetchApi(url, { method: 'GET' }); }
 async function apiPost(payload) { return fetchApi(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) }); }
