@@ -33,6 +33,7 @@ function setPortalReady(ready) { portalReady = ready; $('rsvp-button').disabled 
 function showError(title, copy) { document.body.dataset.state = 'invalid'; $('invalid-title').textContent = title; $('invalid-copy').textContent = copy; setPortalReady(false); }
 function publicError(errorCode) { return errorCode === 'INVALID_LINK' ? t('invalidCopy') : t('requestFailed'); }
 
+function renderIcons() { if (window.lucide) window.lucide.createIcons(); }
 function applyStaticTranslations() {
   document.documentElement.lang = HTML_LANG[currentLanguage];
   document.title = t('title') + ' · ' + t('personalTask');
@@ -106,7 +107,7 @@ function makeAssignment(data, a) {
   if (a.type !== 'Scripture') { const [label, tone] = STATUS_KEYS[a.status] || STATUS_KEYS['尚未提交']; head.append(el('div', 'status-pill ' + tone, t(label))); }
   card.append(head);
   const main = el('div', 'assignment-main');
-  [contentBlock(t('question'), a.question), contentBlock(t('point'), a.point || t('scripturePoint'), 'key-point', true), contentBlock(t('boundary'), a.boundary, 'boundary')].forEach(block => { if (block) main.append(block); });
+  [contentBlock(t('question'), a.question), contentBlock(t('point'), a.point || t('scripturePoint'), 'key-point', true)].forEach(block => { if (block) main.append(block); });
   if (a.type !== 'Scripture') {
     if (a.status === '需要修改' && a.notes) main.append(contentBlock(t('reviewNote'), a.notes, 'review-note'));
     if (a.status === '已通过') { main.append(el('div', 'approval-heading', '✓ ' + t('approvedHeading'))); main.append(contentBlock(t('approvedVersion'), a.approved || t('approvedFallback'), 'approved-version')); }
@@ -122,7 +123,8 @@ function addDraftForm(main, a) {
   if (a.latest) main.append(contentBlock(t('priorDraft', { version: a.latest.version }), a.latest.draft));
   const form = el('form', 'form-group');
   const draftSection = el('div', 'form-section');
-  const draftId = 'draft-' + a.id; const draftLabel = el('label', 'form-label', t('draft')); draftLabel.htmlFor = draftId; draftSection.append(draftLabel, el('div', 'form-hint', t('draftHint')));
+  const draftId = 'draft-' + a.id; const draftLabel = el('label', 'form-label', t('draft')); draftLabel.htmlFor = draftId; draftSection.append(draftLabel);
+  if (a.boundary) { const alert = el('div', 'boundary-alert'); const icon = el('i'); icon.setAttribute('data-lucide', 'triangle-alert'); icon.setAttribute('aria-hidden', 'true'); alert.append(icon, el('div', '', a.boundary)); draftSection.append(alert); }
   const draft = el('textarea'); draft.id = draftId; draft.dataset.draftId = a.id; draft.required = true; draft.maxLength = 5000; draft.placeholder = t('draftPlaceholder'); draft.value = preserveFormState && formState.drafts[a.id] !== undefined ? formState.drafts[a.id] : (a.latest ? a.latest.draft : ''); draftSection.append(draft);
   const questionSection = el('div', 'form-section');
   const questionId = 'question-' + a.id; const questionLabel = el('label', 'form-label', t('chairmanQuestion')); questionLabel.htmlFor = questionId; questionSection.append(questionLabel);
@@ -143,7 +145,7 @@ function render(data) {
   if (data.person.parentReminder) $('minor').append(el('div', 'notice minor', t('parentReminder', { name: data.person.minorChildName })));
   const root = $('assignments'); root.replaceChildren(); data.assignments.forEach(a => root.append(makeAssignment(data, a)));
   const saved = data.person.rehearsalStatus; if (saved) { const option = document.querySelector('input[name="availability"][value="' + saved + '"]'); if (option) option.checked = true; }
-  $('rsvp-notes').value = preserveFormState ? formState.rsvpNotes : (data.person.rehearsalNotes || ''); setPortalReady(true); flashMessage = null; preserveFormState = false;
+  $('rsvp-notes').value = preserveFormState ? formState.rsvpNotes : (data.person.rehearsalNotes || ''); renderIcons(); setPortalReady(true); flashMessage = null; preserveFormState = false;
 }
 
 function setupLanguageMenu() {
