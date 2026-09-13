@@ -40,7 +40,7 @@ function applyStaticTranslations() {
   document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(node => { node.placeholder = t(node.dataset.i18nPlaceholder); });
   $('language-label').textContent = t('langName');
-  if (window.lucide && !document.querySelector('.language-button svg')) window.lucide.createIcons();
+  renderIcons();
   document.querySelectorAll('.language-option').forEach(node => { node.setAttribute('aria-checked', String(node.dataset.lang === currentLanguage)); });
 }
 function captureFormState() {
