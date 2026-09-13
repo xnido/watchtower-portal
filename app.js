@@ -15,6 +15,13 @@ let flashMessage = null;
 let portalReady = false;
 let preserveFormState = false;
 const formState = { drafts: {}, questions: {}, rsvpNotes: '', transitions: {} };
+let lastSuccessfulFetchAt = 0;
+let lastDataSignature = '';
+let refreshInFlight = false;
+let pendingUpdateData = null;
+let fallbackTimer = null;
+const REFRESH_THROTTLE_MS = 12000;
+const FALLBACK_REFRESH_MS = 4 * 60 * 1000;
 const $ = id => document.getElementById(id);
 
 function normalizedLanguage(value) {
@@ -39,9 +46,11 @@ function applyStaticTranslations() {
   document.title = t('title') + ' · ' + t('personalTask');
   document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(node => { node.placeholder = t(node.dataset.i18nPlaceholder); });
+  document.querySelectorAll('[data-i18n-aria]').forEach(node => { node.setAttribute('aria-label', t(node.dataset.i18nAria)); });
   $('language-label').textContent = t('langName');
   renderIcons();
   document.querySelectorAll('.language-option').forEach(node => { node.setAttribute('aria-checked', String(node.dataset.lang === currentLanguage)); });
+  updateLastUpdated();
 }
 function captureFormState() {
   document.querySelectorAll('textarea[data-draft-id]').forEach(node => { formState.drafts[node.dataset.draftId] = node.value; });
@@ -98,7 +107,7 @@ function assignmentTitle(a) {
 }
 function queueLabel(a) { return a.side === 'L' ? t('queueLeft') : t('queueRight'); }
 function makeAssignment(data, a) {
-  const card = el('article', 'assignment-card');
+  const card = el('article', 'assignment-card'); card.dataset.assignmentId = a.id;
   const head = el('div', 'assignment-head');
   const topline = el('div', 'assignment-topline');
   const titleWrap = el('div');
@@ -125,27 +134,28 @@ function addDraftForm(main, a) {
   const draftSection = el('div', 'form-section');
   const draftId = 'draft-' + a.id; const draftLabel = el('label', 'form-label', t('draft')); draftLabel.htmlFor = draftId; draftSection.append(draftLabel);
   if (a.boundary) { const alert = el('div', 'boundary-alert'); const icon = el('i'); icon.setAttribute('data-lucide', 'triangle-alert'); icon.setAttribute('aria-hidden', 'true'); alert.append(icon, el('div', '', a.boundary)); draftSection.append(alert); }
-  const draft = el('textarea'); draft.id = draftId; draft.dataset.draftId = a.id; draft.required = true; draft.maxLength = 5000; draft.placeholder = t('draftPlaceholder'); draft.value = preserveFormState && formState.drafts[a.id] !== undefined ? formState.drafts[a.id] : (a.latest ? a.latest.draft : ''); draftSection.append(draft);
+  const draft = el('textarea'); draft.id = draftId; draft.dataset.draftId = a.id; draft.required = true; draft.maxLength = 5000; draft.placeholder = t('draftPlaceholder'); draft.dataset.serverValue = a.latest ? a.latest.draft : ''; draft.value = preserveFormState && formState.drafts[a.id] !== undefined ? formState.drafts[a.id] : draft.dataset.serverValue; draftSection.append(draft);
   const questionSection = el('div', 'form-section');
   const questionId = 'question-' + a.id; const questionLabel = el('label', 'form-label', t('chairmanQuestion')); questionLabel.htmlFor = questionId; questionSection.append(questionLabel);
-  const question = el('textarea', 'secondary'); question.id = questionId; question.dataset.questionId = a.id; question.maxLength = 1000; question.placeholder = t('chairmanPlaceholder'); question.value = preserveFormState && formState.questions[a.id] !== undefined ? formState.questions[a.id] : (a.latest ? a.latest.question : ''); questionSection.append(question);
+  const question = el('textarea', 'secondary'); question.id = questionId; question.dataset.questionId = a.id; question.maxLength = 1000; question.placeholder = t('chairmanPlaceholder'); question.dataset.serverValue = a.latest ? a.latest.question : ''; question.value = preserveFormState && formState.questions[a.id] !== undefined ? formState.questions[a.id] : question.dataset.serverValue; questionSection.append(question);
   const button = el('button', 'primary-button', t('submitDraft')); button.type = 'submit'; const message = el('div', 'inline-message'); message.setAttribute('role', 'status'); form.append(draftSection, questionSection, button, message);
   form.addEventListener('submit', async event => {
     event.preventDefault(); button.disabled = true; button.textContent = t('submitting'); setMessage(message, t('savingDraft'));
-    try { const result = await apiPost({ action: 'submitDraft', t: token, id: a.id, draft: draft.value, question: question.value }); flashMessage = { id: a.id, version: result.version }; Object.keys(formState.drafts).forEach(key => delete formState.drafts[key]); Object.keys(formState.questions).forEach(key => delete formState.questions[key]); currentData = await apiGet(); preserveFormState = false; render(currentData); }
+    try { const anchorTop = card.getBoundingClientRect().top; const result = await apiPost({ action: 'submitDraft', t: token, id: a.id, draft: draft.value, question: question.value }); flashMessage = { id: a.id, version: result.version }; Object.keys(formState.drafts).forEach(key => delete formState.drafts[key]); Object.keys(formState.questions).forEach(key => delete formState.questions[key]); preserveFormState = false; applyServerData(await apiGet(), { anchorId: a.id, anchorTop }); }
     catch (error) { setMessage(message, error.message === 'NETWORK' ? t('networkError') : publicError(error.message), true); button.disabled = false; button.textContent = t('submitDraft'); }
   });
   main.append(form);
 }
 
+function compactNotice(text) { const note = el('div', 'notice minor'); const icon = el('i'); icon.setAttribute('data-lucide', 'info'); icon.setAttribute('aria-hidden', 'true'); note.append(icon, el('div', '', text)); return note; }
 function render(data) {
-  document.body.dataset.state = 'ready'; currentData = data; $('name').textContent = data.person.name; $('confirm').replaceChildren(); $('minor').replaceChildren();
+  document.body.dataset.state = 'ready'; currentData = data; $('name').textContent = data.person.name; const article = String(data.articleTitle || '').trim(); $('article-summary').hidden = !article; $('article-title').textContent = article; $('confirm').replaceChildren(); $('minor').replaceChildren();
   if (!data.person.confirmed) $('confirm').append(el('div', 'notice', t('unconfirmed')));
-  if (data.person.minor) $('minor').append(el('div', 'notice minor', t('minor', { parent1: data.person.parent1, parent2: data.person.parent2 })));
-  if (data.person.parentReminder) $('minor').append(el('div', 'notice minor', t('parentReminder', { name: data.person.minorChildName })));
+  if (data.person.minor) $('minor').append(compactNotice(t('minor', { parent1: data.person.parent1, parent2: data.person.parent2 })));
+  if (data.person.parentReminder) $('minor').append(compactNotice(t('parentReminder', { name: data.person.minorChildName })));
   const root = $('assignments'); root.replaceChildren(); data.assignments.forEach(a => root.append(makeAssignment(data, a)));
   const saved = data.person.rehearsalStatus; if (saved) { const option = document.querySelector('input[name="availability"][value="' + saved + '"]'); if (option) option.checked = true; }
-  $('rsvp-notes').value = preserveFormState ? formState.rsvpNotes : (data.person.rehearsalNotes || ''); renderIcons(); setPortalReady(true); flashMessage = null; preserveFormState = false;
+  $('rsvp-notes').dataset.serverValue = data.person.rehearsalNotes || ''; $('rsvp-notes').value = preserveFormState ? formState.rsvpNotes : $('rsvp-notes').dataset.serverValue; renderIcons(); updateLastUpdated(); setPortalReady(true); flashMessage = null; preserveFormState = false;
 }
 
 function setupLanguageMenu() {
@@ -164,11 +174,24 @@ $('rsvp').addEventListener('submit', async event => {
   catch (error) { setMessage($('rsvp-message'), error.message === 'NETWORK' ? t('networkError') : publicError(error.message), true); button.disabled = false; button.textContent = t('saveAttendance'); }
 });
 
+function dataSignature(data) { return JSON.stringify({ articleTitle: data.articleTitle || '', rehearsal: [data.person.rehearsalStatus || '', data.person.rehearsalNotes || ''], assignments: data.assignments.map(a => [a.id, a.status, a.notes || '', a.approved || '', a.latest ? a.latest.version : 0, a.latest ? a.latest.draft : '', a.latest ? a.latest.question : '']) }); }
+function updateLastUpdated() { const node = $('last-updated'); if (!node || !lastSuccessfulFetchAt) return; const time = new Intl.DateTimeFormat(HTML_LANG[currentLanguage], { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(lastSuccessfulFetchAt)); node.textContent = t('updatedAt', { time }); }
+function hasUnsavedEdits() { const textDirty = [...document.querySelectorAll('textarea[data-server-value]')].some(node => node.value !== node.dataset.serverValue); const current = document.querySelector('input[name="availability"]:checked'); const saved = currentData && currentData.person.rehearsalStatus || ''; return textDirty || !!(current && current.value !== saved); }
+function restoreTaskPosition(id, top) { if (top === null || top === undefined) return; requestAnimationFrame(() => { const card = document.querySelector('[data-assignment-id="' + id + '"]'); if (card) window.scrollBy(0, card.getBoundingClientRect().top - top); }); }
+function applyServerData(data, options) { lastSuccessfulFetchAt = Date.now(); lastDataSignature = dataSignature(data); pendingUpdateData = null; $('update-notice').hidden = true; render(data); if (options && options.anchorId) restoreTaskPosition(options.anchorId, options.anchorTop); }
+async function refreshData(options) { const force = options && options.force; if (!portalReady || refreshInFlight || (!force && Date.now() - lastSuccessfulFetchAt < REFRESH_THROTTLE_MS)) return; refreshInFlight = true; const button = $('refresh-button'); if (button) { button.disabled = true; button.classList.add('is-loading'); }
+  try { const next = await apiGet(); const changed = dataSignature(next) !== lastDataSignature; if (changed && hasUnsavedEdits()) { pendingUpdateData = next; $('update-notice').hidden = false; } else { applyServerData(next); } }
+  catch (_) { /* Keep the current page intact; the next event or manual refresh can retry. */ }
+  finally { refreshInFlight = false; if (button) { button.disabled = false; button.classList.remove('is-loading'); } }
+}
+function stopFallbackRefresh() { if (fallbackTimer) { clearInterval(fallbackTimer); fallbackTimer = null; } }
+function startFallbackRefresh() { if (!fallbackTimer && document.visibilityState === 'visible') fallbackTimer = setInterval(() => refreshData(), FALLBACK_REFRESH_MS); }
+function setupRefresh() { $('refresh-button').addEventListener('click', () => refreshData({ force: true })); $('view-update').addEventListener('click', () => { if (!pendingUpdateData) return; if (hasUnsavedEdits() && !window.confirm(t('unsavedUpdateConfirm'))) return; applyServerData(pendingUpdateData); }); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { startFallbackRefresh(); refreshData(); } else stopFallbackRefresh(); }); window.addEventListener('focus', () => refreshData()); startFallbackRefresh(); }
 async function loadPortal() {
   token = new URLSearchParams(window.location.search).get('t') || '';
   if (!/^[A-Za-z0-9_-]{32}$/.test(token)) { showError(t('invalidTitle'), t('invalidCopy')); return; }
-  try { currentData = await apiGet(); render(currentData); }
+  try { applyServerData(await apiGet()); }
   catch (error) { if (error.message === 'INVALID_LINK') showError(t('invalidTitle'), t('invalidCopy')); else showError(t('loadFailed'), error.message === 'NETWORK' ? t('networkError') : publicError(error.message)); }
 }
 
-currentLanguage = initialLanguage(); applyStaticTranslations(); setupLanguageMenu(); loadPortal();
+currentLanguage = initialLanguage(); applyStaticTranslations(); setupLanguageMenu(); setupRefresh(); loadPortal();
