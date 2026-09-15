@@ -16,3 +16,27 @@ Object.assign(window.TRANSLATIONS.zh, { seconds: '{value} 秒', secondsRange: '{
 Object.assign(window.TRANSLATIONS.ja, { seconds: '{value} 秒', secondsRange: '{min}～{max} 秒' });
 Object.assign(window.TRANSLATIONS.ko, { seconds: '{value}초', secondsRange: '{min}–{max}초' });
 Object.assign(window.TRANSLATIONS.en, { seconds: '{value} seconds', secondsRange: '{min}–{max} seconds' });
+Object.assign(window.TRANSLATIONS.zh, {
+  content1Reference: '（《守》2019.1刊13页18段）',
+  content1ReferenceUrl: 'https://www.jw.org/finder?wtlocale=CHS&docid=2019241&srctype=wol&srcid=share&par=25',
+  appearance1Reference: '（《守》2016.9刊18-19页5-8段）',
+  appearance1ReferenceUrl: 'https://www.jw.org/finder?wtlocale=CHS&docid=2016684&srctype=wol&srcid=share&par=13-15'
+});
+Object.assign(window.TRANSLATIONS.ja, {
+  content1Reference: '（「ものみの塔」2019年1月号 13ページ 18節）',
+  content1ReferenceUrl: 'https://www.jw.org/finder?wtlocale=J&docid=2019241&srctype=wol&srcid=share&par=25',
+  appearance1Reference: '（「ものみの塔」2016年9月号 18-19ページ 5-8節）',
+  appearance1ReferenceUrl: 'https://www.jw.org/finder?wtlocale=J&docid=2016684&srctype=wol&srcid=share&par=13-15'
+});
+Object.assign(window.TRANSLATIONS.ko, {
+  content1Reference: '（「파수대」 2019년 1월호 13면 18항）',
+  content1ReferenceUrl: 'https://www.jw.org/finder?wtlocale=KO&docid=2019241&srctype=wol&srcid=share&par=25',
+  appearance1Reference: '（「파수대」 2016년 9월호 18-19면 5-8항）',
+  appearance1ReferenceUrl: 'https://www.jw.org/finder?wtlocale=KO&docid=2016684&srctype=wol&srcid=share&par=13-15'
+});
+Object.assign(window.TRANSLATIONS.en, {
+  content1Reference: '(The Watchtower, January 2019, p. 13, par. 18)',
+  content1ReferenceUrl: 'https://www.jw.org/finder?wtlocale=E&docid=2019241&srctype=wol&srcid=share&par=25',
+  appearance1Reference: '(The Watchtower, September 2016, pp. 18-19, pars. 5-8)',
+  appearance1ReferenceUrl: 'https://www.jw.org/finder?wtlocale=E&docid=2016684&srctype=wol&srcid=share&par=13-15'
+});

@@ -56,6 +56,7 @@ function applyStaticTranslations() {
   document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(node => { node.placeholder = t(node.dataset.i18nPlaceholder); });
   document.querySelectorAll('[data-i18n-aria]').forEach(node => { node.setAttribute('aria-label', t(node.dataset.i18nAria)); });
+  document.querySelectorAll('[data-i18n-href]').forEach(node => { node.setAttribute('href', t(node.dataset.i18nHref)); });
   $('language-label').textContent = t('langName');
   updatePreparationA11y();
   renderIcons();
