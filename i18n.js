@@ -40,7 +40,7 @@ Object.assign(window.TRANSLATIONS.en, {
   appearance1Reference: '(The Watchtower, September 2016, pp. 18-19, pars. 5-8)',
   appearance1ReferenceUrl: 'https://www.jw.org/finder?wtlocale=E&docid=2016684&srctype=wol&srcid=share&par=13-15'
 });
-Object.assign(window.TRANSLATIONS.zh, { morningTime: '8:45', morningCopy: '所有参与者报到，并参加大会方面安排的官方讲台走位练习。' });
-Object.assign(window.TRANSLATIONS.ja, { morningTime: '8:45', morningCopy: '参加者全員が受付を済ませ，大会側が手配する公式のステージでの動きの練習に参加します。' });
-Object.assign(window.TRANSLATIONS.ko, { morningTime: '8:45', morningCopy: '모든 참가자는 등록하고 대회 측에서 마련한 공식 무대 동선 연습에 참여합니다.' });
-Object.assign(window.TRANSLATIONS.en, { morningTime: '8:45 a.m.', morningCopy: 'All participants will register and attend the official stage walk-through arranged by the assembly.' });
+Object.assign(window.TRANSLATIONS.zh, { morningTime: '8:45', morningCopy: '所有参与者报到，并参加大会方面安排的讲台走位练习。' });
+Object.assign(window.TRANSLATIONS.ja, { morningTime: '8:45', morningCopy: '参加者全員が受付を済ませ，大会側が手配するステージでの動きの練習に参加します。' });
+Object.assign(window.TRANSLATIONS.ko, { morningTime: '8:45', morningCopy: '모든 참가자는 등록하고 대회 측에서 마련한 무대 동선 연습에 참여합니다.' });
+Object.assign(window.TRANSLATIONS.en, { morningTime: '8:45 a.m.', morningCopy: 'All participants will register and attend the stage walk-through arranged by the assembly.' });
